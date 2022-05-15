@@ -1,0 +1,64 @@
+drop table if exists laptops;
+drop table if exists brands;
+drop table if exists processor;
+drop table if exists ram_type;
+drop table if exists disk_type;
+drop table if exists os;
+drop table if exists weight;
+
+create table brands (
+    id integer primary key,
+    name varchar(20)
+);
+
+create table processor (
+    id integer primary key,
+    brand varchar(20),
+    name varchar(20)
+);
+
+create table ram_type (
+    id integer primary key,
+    type varchar(20)
+);
+
+create table disk_type (
+    id integer primary key,
+    ssd int,
+    hdd int
+);
+
+create table os (
+    id integer primary key,
+    name varchar(20)
+);
+
+create table weight (
+    id integer primary key,
+    type varchar(20)
+);
+
+create table laptops (
+    id integer primary key,
+    brand_id integer,
+    model varchar(20),
+    processor_id integer,
+    processor_generation int,
+    ram int,
+    ram_type_id integer,
+    disk_type_id integer,
+    os_id integer,
+    os_bit int,
+    graphic_card_gb int,
+    weight_id integer,
+    display_size int,
+    touchscreen int,
+    price int,
+    rating float,
+    foreign key(brand_id) references brands(id),
+    foreign key(processor_id) references processor(id),
+    foreign key(ram_type_id) references ram_type(id),
+    foreign key(disk_type_id) references disk_type(id),
+    foreign key(os_id) references os(id),
+    foreign key(weight_id) references weight(id)
+);
