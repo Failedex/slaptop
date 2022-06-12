@@ -29,28 +29,24 @@ def remake_data():
 
             touchscreen = 1 if laptop[15] == "Yes" else 0
 
-            insert_data(index, laptop[0], laptop[1], laptop[2], laptop[3], processor_gnrt, ram, laptop[6], ssd, hdd, laptop[9], os_bit, int(laptop[11]), laptop[12], display, touchscreen, int(laptop[17]), float(laptop[20]))
+            insert_data(cur, index, laptop[0], laptop[1], laptop[2], laptop[3], processor_gnrt, ram, laptop[6], ssd, hdd, laptop[9], os_bit, int(laptop[11]), laptop[12], display, touchscreen, int(laptop[17]), float(laptop[20]))
 
         conn.commit()
     conn.close()
         
-def insert_data(id, brand, model, processor_brand, processor_name, processor_generation, ram, ram_type, ssd, hdd, os, os_bit, graphic_card_gb, weight, display_size, touchscreen, price, rating):
-    conn = sqlite3.connect("laptops.db")
-    cur = conn.cursor()
+def insert_data(cur, id, brand, model, processor_brand, processor_name, processor_generation, ram, ram_type, ssd, hdd, os, os_bit, graphic_card_gb, weight, display_size, touchscreen, price, rating):
 
-    brand_id = get_key(True, "brands", f"name = '{brand}'", f"'{brand}'", "name")
-    processor_id = get_key(True, "processor", f"brand = '{processor_brand}' and name = '{processor_name}'", f"'{processor_brand}', '{processor_name}'", "brand, name")
-    ram_type_id = get_key(True, "ram_type", f"type = '{ram_type}'", f"'{ram_type}'", "type")
-    disk_type_id = get_key(True, "disk_type", f"ssd = {ssd} and hdd = {hdd}", f"{ssd}, {hdd}", "ssd, hdd")
-    os_id = get_key(True, "os", f"name = '{os}'", f"'{os}'", "name")
-    weight_id = get_key(True, "weight", f"type = '{weight}'", f"'{weight}'", "type")
+    brand_id = get_key(True, "brands", f"name = '{brand}'", f"'{brand}'", "name", cur)
+    processor_brand_id = get_key(True, "processor_brand", f"brand = '{processor_brand}'", f"'{processor_brand}'", "brand", cur)
+    processor_id = get_key(True, "processor", f"brand_id = '{processor_brand_id}' and model = '{processor_name}'", f"'{processor_brand_id}', '{processor_name}'", "brand_id, model", cur)
+    ram_type_id = get_key(True, "ram_type", f"type = '{ram_type}'", f"'{ram_type}'", "type", cur)
+    disk_type_id = get_key(True, "disk_type", f"ssd = {ssd} and hdd = {hdd}", f"{ssd}, {hdd}", "ssd, hdd", cur)
+    os_id = get_key(True, "os", f"name = '{os}'", f"'{os}'", "name", cur)
+    weight_id = get_key(True, "weight", f"type = '{weight}'", f"'{weight}'", "type", cur)
 
     cur.execute("insert into laptops (id, brand_id, model, processor_id, processor_generation, ram, ram_type_id, disk_type_id, os_id, os_bit, graphic_card_gb, weight_id, display_size, touchscreen, price, rating) values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", [id, brand_id, model, processor_id, processor_generation, ram, ram_type_id, disk_type_id, os_id, os_bit, graphic_card_gb, weight_id, display_size, touchscreen, price, rating])
-    conn.close()
 
-def get_key(create, table, condition, item, values) -> int|None:
-    conn = sqlite3.connect("laptops.db")
-    cur = conn.cursor()
+def get_key(create, table, condition, item, values, cur) -> int|None:
 
     cur.execute(
         f"""
@@ -71,7 +67,6 @@ def get_key(create, table, condition, item, values) -> int|None:
     else:
         return response[0]
     
-    conn.close()
 
 # def view_data(brand, model, processor_brand, processor_name, processor_generation, ram, ram_type, ssd, hdd, os, os_bit, graphic_card_gb, weight, display_size, touchscreen, price, rating):
 
@@ -87,13 +82,25 @@ def get_key(create, table, condition, item, values) -> int|None:
     # )
     # print(cur.fetchall())
 
-def view_data(condition):
-    conn = sqlite3.connect("laptops.db")
-    cur = conn.cursor()
+def view_data(cur, condition):
 
     cur.execute(f"select * from laptops where {condition}")
     return cur.fetchall()
 
-    conn.close()
 
+def all_keys(cur, table, items):
 
+    cur.execute(f"select id, {items} from {table}")
+
+    res = cur.fetchall()
+
+    dic = {}
+    if len(res[0]) == 3:
+        for item in res:
+            dic[f"{item[1]} {item[2]}"] = item[0]
+    
+    else:
+        for item in res:
+            dic[f"{item[1]}"] = item[0]
+    
+    return dic

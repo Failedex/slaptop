@@ -5,16 +5,23 @@ drop table if exists ram_type;
 drop table if exists disk_type;
 drop table if exists os;
 drop table if exists weight;
+drop table if exists processor_brand;
 
 create table brands (
     id integer primary key,
     name varchar(20)
 );
 
+create table processor_brand(
+    id integer primary key,
+    brand varchar(20)
+);
+
 create table processor (
     id integer primary key,
-    brand varchar(20),
-    name varchar(20)
+    brand_id integer,
+    model varchar(20),
+    foreign key(brand_id) references processor_brand(id)
 );
 
 create table ram_type (
