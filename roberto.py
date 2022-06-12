@@ -37,15 +37,20 @@ def filter_window():
                         and sdd {info['operator'].get()} {info['choice'].get()};
                     """)
 
+                    disk_type_filter = "("
+
                     for valid_id in cur.fetchall():
-                        pass
+                        disk_type_filter += f"disk_type_id = {valid_id} or "
+                    
+                    condition += disk_type_filter + ") and "
+                    return
 
                 choice = info["choice"].get()
                 dictionary = info["dictionary"]
                 
                 if choice == "None": continue
 
-                condition += f"{column}_id = {dictionary[choice]} and"
+                condition += f"{column}_id = {dictionary[choice]} and "
                 
                 continue
             
