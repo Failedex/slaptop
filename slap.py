@@ -83,7 +83,6 @@ def get_key(create, table, condition, item, values, cur) -> int|None:
     # print(cur.fetchall())
 
 def view_data(cur, condition):
-
     cur.execute(f"select * from laptops where {condition}")
     return cur.fetchall()
 
@@ -104,3 +103,4 @@ def all_keys(cur, table, items):
             dic[f"{item[1]}"] = item[0]
     
     return dic
+remake_data()
