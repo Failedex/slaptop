@@ -58,7 +58,7 @@ create table laptops (
     os_bit int,
     graphic_card_gb int,
     weight_id integer,
-    display_size int,
+    display_size float,
     touchscreen int,
     price int,
     rating float,
