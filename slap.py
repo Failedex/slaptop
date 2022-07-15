@@ -60,13 +60,16 @@ def insert_data(cur, id, brand, model, processor_brand, processor_name, processo
     os_id = get_key(True, "os", f"name = '{os}'", f"'{os}'", "name", cur)
     weight_id = get_key(True, "weight", f"type = '{weight}'", f"'{weight}'", "type", cur)
 
-    cur.execute("insert into laptops (id, brand_id, model, processor_id, processor_generation, ram, ram_type_id, disk_type_id, os_id, os_bit, graphic_card_gb, weight_id, display_size, touchscreen, price, rating) values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", [id, brand_id, model, processor_id, processor_generation, ram, ram_type_id, disk_type_id, os_id, os_bit, graphic_card_gb, weight_id, display_size, touchscreen, price, rating])
+    cur.execute("""
+        INSERT INTO laptops (id, brand_id, model, processor_id, processor_generation, ram, ram_type_id, disk_type_id, os_id, os_bit, graphic_card_gb, weight_id, display_size, touchscreen, price, rating) 
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    """, [id, brand_id, model, processor_id, processor_generation, ram, ram_type_id, disk_type_id, os_id, os_bit, graphic_card_gb, weight_id, display_size, touchscreen, price, rating])
 
-def get_key(create, table, condition, item, values, cur) -> int|None:
+def get_key(create, table, condition, item, values, cur):
     """
     this function will find the foreign key from the foreign table. If it doesn't exist, you can tell it to create it and retrun the key or just return None from the argument "create"
     """
-    cur.execute(f"select id from {table} where {condition}")
+    cur.execute(f"SELECT id FROM {table} WHERE {condition}")
     
     key = cur.fetchone()
 
@@ -75,9 +78,9 @@ def get_key(create, table, condition, item, values, cur) -> int|None:
         if create == False: return None
 
         # if it got here, it hasn't returned which means create is True and the key should be created
-        cur.execute(f"insert into {table} ({values}) values ({item})")
+        cur.execute(f"INSERT INTO {table} ({values}) VALUES ({item})")
 
-        cur.execute (f"select id from {table} where {condition}")
+        cur.execute (f"SELECT id FROM {table} WHERE {condition}")
 
         return cur.fetchone()[0]
     else:
@@ -94,15 +97,10 @@ def get_key(create, table, condition, item, values, cur) -> int|None:
     # os_id = get_key(False, "os", f"name = '{os}'", None, None)
     # weight_id = get_key(False, "weight", f"type = {weight}", None, None)
 
-    # cur.execute(f"select * from laptops where brand_id = ? and model = ? and processor_id = ? and processor_generation > ? and ram > ? and ram_type_id = ? and disk_type_id = ? and os_id = ? and os_bit = ? and graphic_card_gb > ? and weight_id = integer and display_size = ? and touchscreen = ? and price < ? and rating > ?", 
+    # cur.execute(f"SELECT * FROM laptops WHERE brand_id = ? and model = ? and processor_id = ? and processor_generation > ? and ram > ? and ram_type_id = ? and disk_type_id = ? and os_id = ? and os_bit = ? and graphic_card_gb > ? and weight_id = integer and display_size = ? and touchscreen = ? and price < ? and rating > ?", 
     #     [brand_id, model, processor_id, processor_generation, ram, ram_type_id, disk_type_id, os_id, os_bit, graphic_card_gb, weight_id, display_size, touchscreen, price, rating]
     # )
     # print(cur.fetchall())
-
-def view_data(cur, condition):
-    cur.execute(f"select * from laptops where {condition}")
-    return cur.fetchall()
-
 
 def all_keys(cur, table, items) -> dict():
     """
@@ -111,7 +109,7 @@ def all_keys(cur, table, items) -> dict():
     """
 
     # I used an f string because "items" can include 2 things (for example: ssd, hdd)
-    cur.execute(f"select id, {items} from {table}")
+    cur.execute(f"SELECT id, {items} FROM {table}")
 
     result = cur.fetchall()
 
@@ -129,4 +127,29 @@ def all_keys(cur, table, items) -> dict():
             table[f"{item[1]}"] = item[0]
     
     return table
+
+# averages
+def get_average(cur, field, table, average):
+    # average will be mean, median, or mode
+    # start by getting all data from field
+    result = cur.execute(f"SELECT {field} FROM {table} WHERE 1=1")
+    numbers = result.fetchall()
+   
+    if average == "mean":
+        # remove all non numbers before calculating the mean
+        numbers = [num[0] for num in numbers if isinstance(num[0], int) or isinstance(num[0], float)]
+        return f"average of {sum(numbers)/len(numbers)} (mean)"
+
+    if average == "median":
+        # remove all non numbers before calculating the median
+        numbers = [num[0] for num in numbers if isinstance(num[0], int) or isinstance(num[0], float)]
+        numbers.sort()
+        return f"usually {numbers[len(numbers)//2]} (median)"
+
+    if average == "mode":
+        # this average works for strings
+        numbers = [num[0] for num in numbers]
+        # https://stackoverflow.com/questions/10797819/finding-the-mode-of-a-list thanks stackoverflow
+        return f"commonly {max(set(numbers), key=numbers.count)} (mode)"
+
 remake_data()

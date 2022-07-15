@@ -1,5 +1,5 @@
 import tkinter as tk
-from slap import view_data, insert_data, all_keys
+from slap import insert_data, all_keys, get_average
 import sqlite3
 
 # have the connection and cursor made before anything else
@@ -13,11 +13,10 @@ title = tk.Label(root, text="Laptops", font=("Sans", 15))
 title.pack()
 
 # this function will make sure that only one child window is on at any point
-window_on = False
 
 def noinjection(statement, statement_type):
     """
-    this function pprevents sql injection. It takes in an entered field and what type it is meant to be before checking them accordingly
+    this function prevents sql injection. It takes in an entered field and what type it is meant to be before checking them accordingly
     """
 
     if statement_type == "string":
@@ -41,53 +40,48 @@ def filter_window():
     """
     this function spawns a window with filtering gui
     """
-    global window_on
-
-    # is there is already a window open return
-    if window_on: return
-    # no window is open, continue and set it to true.
-    window_on = True
 
     # just some window configuration
     t = tk.Toplevel(root)
     t.wm_title("laptop filters")
 
     # a subfunction that is activated when pressing "comfirm filter"
-    # note that this function will confuse you if you haven't read the rest of the function
+    # note that this function will confuse you if you haven't read the rest of the function. It is very important to read the rest of the function first.
     def exit_filter():
-        global window_on
 
         # it will write the sql statement as it goes through what the user has input
         condition = ""
         for column, info in dropdowns.items():
 
-            # hdd and ssd will be checked together as they belong together in one foreign table
+            # hdd and ssd will must be checked together as they belong together in one foreign table
             if column == "hdd": continue
             if column == "ssd":
 
                 if dropdowns["hdd"]["choice"].get() == "" and info["choice"].get() == "":
                     # if nothing is put for them both, it just takes all the id available
-                    disk_filter = "select id from disk_type;"
+                    disk_filter = "SELECT id FROM disk_type;"
                 else:
                     # if something is placed for at least one of them, it will write a sql statement to filter the ones that fit the case 
-                    disk_filter = "select id from disk_type where "
-                    if not noinjection(dropdowns["hdd"]["choice"].get(), "int") or not noinjection(info["choice"].get(), "int"):
+
+                    hddentry = dropdowns["hdd"]["choice"].get()
+                    hddentry2 = dropdowns["hdd"]["choice2"].get()
+                    ssdentry = info["choice"].get()
+                    ssdentry2 = info["choice2"].get()
+
+                    if hddentry == "": hddentry = "0"
+                    if hddentry2 == "": hddentry2 = "10000000"
+                    if ssdentry == "": ssdentry = "0"
+                    if ssdentry2 == "": ssdentry2 = "10000000"
+                    
+                    if not noinjection(hddentry, "int") or not noinjection(hddentry2, "int") or not noinjection(ssdentry, "int") or not noinjection(ssdentry2, "int"):
                         # if either one of the fails the anti sql injection test, everything will be displayed and the window will close
                         display_data(False, "numbers field only take in numbers")
                         t.destroy()
                         t.update()
-                        window_on = False
                         return
 
-                    # if the following field isn't empty, add to the sql statement
-                    if dropdowns["hdd"]["choice"].get() != "":
-                        disk_filter += f"hdd {dropdowns['hdd']['operator'].get()} {dropdowns['hdd']['choice'].get()} and "
+                    disk_filter = f"SELECT id FROM disk_type WHERE (hdd between {hddentry} and {hddentry2}) and (ssd between {ssdentry} and {ssdentry2})" 
                     
-                    if info["choice"].get() != "":
-                        disk_filter += f"ssd {info['operator'].get()} {info['choice'].get()} and "
-                    
-                    # take out the last "and" and add a semicolon
-                    disk_filter = disk_filter[:-4] + ";"
 
                 # execute the sql statement and get all the available disk type ids
                 cur.execute(disk_filter)
@@ -127,7 +121,6 @@ def filter_window():
                     display_data(False, "suspicious string detected")
                     t.destroy()
                     t.update()
-                    window_on = False
                     return
 
                 # if it made it here, the prompt will be added onto the statement
@@ -136,30 +129,31 @@ def filter_window():
                 continue
             
             if info["option"] == "searchint" or info["option"] == "searchfloat":
+                # there is a below than option and an above than option
                 entry = info["choice"].get()
+                entry2 = info["choice2"].get()
 
-                # if the user didn't put anything for this field, skip it
-                if entry == "": continue
+                # if the user didn't put anything for both field, skip it
+                if entry == "" and entry2 == "": continue
 
-                if not noinjection(entry, "float"): 
+                # if only one field is empty, fill it out for them
+                if entry == "": entry = "0"
+                if entry2 == "": entry2 = "10000000"
+
+                if not noinjection(entry, "float") or not noinjection(entry2, "float"): 
                     # if the entered string does not pass the anti sql injection test, it displays everything and destroys the window
                     display_data(False, "number field only takes in numbers")
                     t.destroy()
                     t.update()
-                    window_on = False
                     return
 
-                # bigger than, smaller than, or equal to
-                operator = info["operator"].get()
-
                 # if it made it here, the prompt will be added onto the statement
-                condition += f"laptops.{column} {operator} {entry} and "
+                condition += f"(laptops.{column} between {entry} and {entry2}) and"
                 
                 continue
                     
             if info["option"] == "boolean":
                 boo = info["choice"].get()
-
 
                 # if this field isn't selected, don't add it to the statement
                 if boo == 0: continue
@@ -171,6 +165,8 @@ def filter_window():
         
         # remove the last "and" from the sql filter statement
         condition = condition[:-4]
+
+        # prints the finished condition to the console. Was for debugging but was kept for demonstration purposes
         print(condition)
 
         # this will display the filtered data on the main gui
@@ -179,7 +175,6 @@ def filter_window():
         # destroys the window before setting window_on back to False, allowing another window to be open
         t.destroy()
         t.update()
-        window_on = False
         
 
     # read below before reading the exit_filter function
@@ -195,22 +190,24 @@ def filter_window():
         brand= {"foreign": True, "table": "brands", "items": "name", "option": "dropdown"}, 
         model= {"foreign": False, "option":"search"},
         processor= {"foreign": True, "special": True},
-        processor_generation= {"foreign": False, "option": "searchint"},
-        ram= {"foreign": False, "option": "searchint"},
-        ram_type= {"foreign": True, "table": "ram_type", "items": "type", "option": "dropdown"},
-        ssd= {"foreign": False, "option": "searchint"},
-        hdd= {"foreign": False, "option": "searchint"},
-        os= {"foreign": True, "table": "os", "items": "name", "option": "dropdown"},
-        os_bit= {"foreign": False, "option": "searchint"},
-        graphic_card_gb= {"foreign": False, "option": "searchint"},
+        processor_generation= {"foreign": False, "option": "searchint", "average": "median"},
+        ram= {"foreign": False, "option": "searchint", "average": "mode"},
+        ram_type= {"foreign": True, "table": "ram_type", "items": "type", "option": "dropdown", "average": "mode"},
+        ssd= {"foreign": False, "option": "searchint", "average": "median"},
+        hdd= {"foreign": False, "option": "searchint", "average": "median"},
+        os= {"foreign": True, "table": "os", "items": "name", "option": "dropdown", "average": "mode"},
+        os_bit= {"foreign": False, "option": "searchint", "average": "median"},
+        graphic_card_gb= {"foreign": False, "option": "searchint", "option": "median"},
         weight= {"foreign": True, "table": "weight", "items": "type", "option": "dropdown"},
-        display_size= {"foreign": False, "option": "searchfloat"},
+        display_size= {"foreign": False, "option": "searchfloat", "average": "mean"},
         touchscreen= {"foreign": False, "option": "boolean"},
-        price= {"foreign": False, "option": "searchint"},
-        rating= {"foreign": False, "option": "searchfloat"},
+        price= {"foreign": False, "option": "searchint", "average": "mean"},
+        rating= {"foreign": False, "option": "searchfloat", "average": "mean"},
     )
 
     # loops through the dictionary and makes the gui
+
+    # index, (field, field_information)
     for i , (column, info) in enumerate(dropdowns.items()):
 
         # this displays the field name
@@ -218,15 +215,14 @@ def filter_window():
         
         if info["foreign"] == True:
 
-            # processor is special. So is disk_type
+            # processor is special
             if column == "processor":
-                touched_grass = False
                 
                 # selects all processors with their id, brand, and model
                 cur.execute(f"""
-                    select processor.id, processor_brand.brand, processor.model from processor 
-                    left join processor_brand
-                    on processor.brand_id = processor_brand.id;
+                    SELECT processor.id, processor_brand.brand, processor.model FROM processor 
+                    LEFT JOIN processor_brand
+                    ON processor.brand_id = processor_brand.id;
                 """)
 
                 # making the dictionary that can convert from item to key
@@ -246,10 +242,14 @@ def filter_window():
 
             choice_select = tk.OptionMenu(t, choice, *options)
             choice_select.grid(row = i+1, column = 2)
+            
+            if "average" in info:
+                average = get_average(cur, info["items"], info["table"], info["average"])
+                tk.Label(t, text=average).grid(row=i+1, column =5)
 
             # save the choice the user will enter and the dictionary to convert from item back to id
-            dropdowns[column]["choice"] = choice
-            dropdowns[column]["dictionary"] = options
+            info["choice"] = choice
+            info["dictionary"] = options
 
             continue
 
@@ -259,24 +259,35 @@ def filter_window():
             entry.grid(row = i+1, column=2)
 
             # save the entry
-            dropdowns[column]["choice"] = entry
+            info["choice"] = entry
         
         if info["option"] == "searchint" or info["option"] == "searchfloat":
-            # make a dropdown of operators bigger than, smaller than, and equal to
-            
-            options = [">=", "<=", "="]
-            choice = tk.StringVar(t)
-            choice.set("=")
-            choice_select = tk.OptionMenu(t, choice, *options)
-            choice_select.grid(row = i+1, column = 1)
-
-            # add an entry field
+            # add two entry field, one for < one for >
             entry = tk.Entry(t)
-            entry.grid(row = i+1, column = 2)
+            entry.grid(row = i+1, column = 0)
+
+            # overides the original label
+            tk.Label(t, text = column).grid(row = i+1, column=2)
+            tk.Label(t, text = "<=").grid(row = i+1, column=3)
+            tk.Label(t, text = "<=").grid(row = i+1, column=1)
+
+            entry2 = tk.Entry(t)
+            entry2.grid(row = i+1, column = 4)
+
+            # if an average is set
+            if "average" in info: 
+
+                if column == "ssd" or column == "hdd":
+                    average = get_average(cur, column, "disk_type", info["average"])
+                else:
+                    average = get_average(cur, column, "laptops", info["average"])
+                
+                # put info on column 5
+                tk.Label(t, text = average).grid(row = i+1, column=5)
 
             # remember the entry and the operator 
-            dropdowns[column]["choice"] = entry
-            dropdowns[column]["operator"] = choice
+            info["choice"] = entry
+            info["choice2"] = entry2
         
         if info["option"] == "boolean": 
             # make a checkbox
@@ -284,25 +295,18 @@ def filter_window():
             checkbox = tk.Checkbutton(t, variable=boo).grid(row = i+1, column = 2)
 
             # remember check box entry
-            dropdowns[column]["choice"] = boo
+            info["choice"] = boo
 
 
 def add_window():
     """
     this function spawns a window with the add gui
     """
-    global window_on
-
-    # similar code to before. Prevents multiple top window from being spawned
-    if window_on: return
-    window_on = True
-
     t = tk.Toplevel(root)
     t.wm_title("laptop add")
 
     # function that runs when the "add laptop" button is pressed. similar to the filter gui function, read the rest of the code in this function before reading this one or you will be confused
     def add_laptop():
-        global window_on
         
         # loops through laptop_info dictionary
         for key, info in laptop_info.items():
@@ -312,7 +316,6 @@ def add_window():
                     display_data(False, "field not entered")
                     t.destroy()
                     t.update()
-                    window_on = False
                     return
 
                 
@@ -324,13 +327,12 @@ def add_window():
 
                 # if nothing is entered but it is optional, set the entry to the default value. otherwise, display all data and close window
                 if "optional" in info.keys():
-                    laptop_info[key]["entry"] = info["default"]
+                    info["entry"] = info["default"]
                     continue
                 else:
                     display_data(False, "field not entered")
                     t.destroy()
                     t.update()
-                    window_on = False
                     return
 
             if not noinjection(info["entry"].get(), info["type"]): 
@@ -338,13 +340,12 @@ def add_window():
                 display_data(False, "suspicious characters detected")
                 t.destroy()
                 t.update()
-                window_on = False
                 return
 
             if info["type"] == "string":
                 # if entry type is meant to be a string, set the first character to upper case and everything else to lower
                 entry = info["entry"].get()
-                laptop_info[key]["entry"] = entry[0].upper() + entry[1:].lower()
+                info["entry"] = entry[0].upper() + entry[1:].lower()
                 
             if info["type"] == "int":
                 info["entry"] = int(info["entry"].get())
@@ -357,8 +358,10 @@ def add_window():
  
 
         # get the id of the new laptop by taking the amount of laptops in the database +1
-        id = len(view_data(cur, "1 = 1"))+1
+        cur.execute("SELECT * FROM laptops where 1 = 1")
+        id = len(cur.fetchall())+1
 
+        # just prints to the console. Was for debugging purposes but I decided to keep it for demonstration purposes
         print(id, laptop_info["brand"]["entry"], laptop_info["model"]["entry"], laptop_info["processor_brand"]["entry"], laptop_info["processor_name"]["entry"], laptop_info["processor_generation"]["entry"], laptop_info["ram"]["entry"], laptop_info["ram_type"]["entry"], laptop_info["ssd"]["entry"], laptop_info["hdd"]["entry"], laptop_info["os"]["entry"], laptop_info["os_bit"]["entry"], laptop_info["graphic_card_gb"]["entry"], laptop_info["weight"]["entry"], laptop_info["display_size"]["entry"], laptop_info["touchscreen"]["entry"], laptop_info["price"]["entry"], laptop_info["rating"]["entry"])
 
         # use the insert function from the other python file to easily insert the new data
@@ -370,7 +373,6 @@ def add_window():
         # close window, display everything with the appropriate message
         t.destroy()
         t.update()
-        window_on = False
         display_data(False, "laptop has been added")
         return
         
@@ -418,7 +420,7 @@ def add_window():
             choice_select.grid(row = i+1, column = 2)
 
             # saves the user option
-            laptop_info[key]["entry"] = choice
+            info["entry"] = choice
             continue
 
         if info["type"] == "bool":
@@ -426,7 +428,7 @@ def add_window():
             boo = tk.IntVar()
             checkbox = tk.Checkbutton(t, variable=boo).grid(row = i+1, column = 2)
             # saves user option
-            laptop_info[key]["entry"] = boo
+            info["entry"] = boo
             continue
 
         if info["type"] == "int" or info["type"] == "float":
@@ -437,7 +439,7 @@ def add_window():
         entry = tk.Entry(t)
         entry.grid(row=i+1, column=2)
         # saves user option
-        laptop_info[key]["entry"] = entry
+        info["entry"] = entry
 
 
 # a filter and add button
@@ -463,6 +465,16 @@ my_scrollbar.pack(side="right", fill="y")
 my_canvas.configure(yscrollcommand=my_scrollbar.set)
 my_canvas.bind('<Configure>', lambda e: my_canvas.configure(scrollregion=my_canvas.bbox("all")))
 
+# supporting mouse scrolling
+def _on_mousewheel(event):
+    my_canvas.yview_scroll(-1 * int((event.delta / 120)), "units")
+
+my_canvas.bind_all("<MouseWheel>", _on_mousewheel)
+
+# below is for linux, it also doesn't work for some reason.
+# my_canvas.bind_all("<Button-4>", _on_mousewheel)
+# my_canvas.bind_all("<Button-5>", _on_mousewheel) 
+
 # create another frame inside canvas
 second_frame = tk.Frame(my_canvas)
 
@@ -471,45 +483,44 @@ my_canvas.create_window((0,0), window=second_frame, anchor="nw")
 
 # add items into second frame
 
-def detail(id, btn_id):
+def detail(id):
     """
     this function displays more data on the laptop clicked by user on the main gui
     """
 
     # gets more information from the laptop id
     cur.execute(f"""
-    select brands.name, laptops.model, laptops.processor_generation, processor.model, ram_type.type, laptops.ram, disk_type.ssd, disk_type.hdd, os.name, laptops.os_bit, laptops.graphic_card_gb, weight.type, laptops.display_size, laptops.touchscreen, laptops.price, laptops.rating
-    from laptops left join brands on laptops.brand_id = brands.id
-    left join processor on laptops.processor_id = processor.id
-    left join ram_type on laptops.ram_type_id = ram_type.id
-    left join disk_type on laptops.disk_type_id = disk_type.id
-    left join os on laptops.os_id = os.id
-    left join weight on laptops.weight_id = weight.id
-    where laptops.id = {id}
+    SELECT brands.name, laptops.model, laptops.processor_generation, processor.model, ram_type.type, laptops.ram, disk_type.ssd, disk_type.hdd, os.name, laptops.os_bit, laptops.graphic_card_gb, weight.type, laptops.display_size, laptops.touchscreen, laptops.price, laptops.rating
+    FROM laptops LEFT JOIN brands ON laptops.brand_id = brands.id
+    LEFT JOIN processor ON laptops.processor_id = processor.id
+    LEFT JOIN ram_type ON laptops.ram_type_id = ram_type.id
+    LEFT JOIN disk_type ON laptops.disk_type_id = disk_type.id
+    LEFT JOIN os ON laptops.os_id = os.id
+    LEFT JOIN weight ON laptops.weight_id = weight.id
+    WHERE laptops.id = {id}
     """)
 
     # fetch the laptop
     laptop = cur.fetchone()
 
-    # get the right button with the button id and the second_frame widget
-    btn = second_frame.winfo_children()[btn_id]
+    t = tk.Toplevel(root)
+    t.wm_title(f"{laptop[0]} {laptop[1]}")
 
     # set text
-    btn["text"] = f"""{laptop[0]} {laptop[1]} 
+    tk.Label(t, text = f"""{laptop[0]} {laptop[1]} 
     ssd: {laptop[6]} hdd: {laptop[7]}
     ram: {laptop[5]}GB {laptop[4]} 
-    {laptop[3]} {laptop[2]}th gen
+    cpu: {laptop[3]} {laptop[2]}th gen
     os: {laptop[8]} bit: {laptop[9]}
     graphics card: {laptop[10]}GB
     weight: {laptop[11]}
     display size: {laptop[12]}
     touchsceen: {"true" if laptop[13] == 1 else "false"}
-    price: {laptop[14]} rating: {laptop[15]}"""
+    price: {laptop[14]} rating: {laptop[15]}
+    id: {id}
+    """, font=("15"), justify="left").pack(anchor="nw")
 
-    my_canvas.update()
-
-
-def display_data(condition = False, error = ""):
+def display_data(condition = False, error = None):
     """
     this function displays all the laptop on the main gui for the user, it also prints out the "error" message
     """
@@ -517,38 +528,46 @@ def display_data(condition = False, error = ""):
     # destroys everything in the scrolling widget
     for widget in second_frame.winfo_children():
         widget.destroy()
-    
-    # display error message
-    tk.Label(second_frame, text = error, fg="red", font=("15")).pack(fill = "x")
-
+ 
     # if no conditions are given, display everything, otherwise, display with condition
     if not condition:
         cur.execute(f"""
-            select laptops.id, brands.name, laptops.model, laptops.processor_generation, processor.model, ram_type.type, laptops.ram, disk_type.ssd, disk_type.hdd, os.name, laptops.os_bit, laptops.graphic_card_gb, weight.type, laptops.display_size, laptops.touchscreen, laptops.price, laptops.rating
-            from laptops 
-            left join brands on laptops.brand_id = brands.id
-            left join processor on laptops.processor_id = processor.id
-            left join ram_type on laptops.ram_type_id = ram_type.id
-            left join disk_type on laptops.disk_type_id = disk_type.id
-            left join os on laptops.os_id = os.id
-            left join weight on laptops.weight_id = weight.id
+            SELECT laptops.id, brands.name, laptops.model, laptops.processor_generation, processor.model, ram_type.type, laptops.ram, disk_type.ssd, disk_type.hdd, os.name, laptops.os_bit, laptops.graphic_card_gb, weight.type, laptops.display_size, laptops.touchscreen, laptops.price, laptops.rating
+            FROM laptops 
+            LEFT JOIN brands ON laptops.brand_id = brands.id
+            LEFT JOIN processor ON laptops.processor_id = processor.id
+            LEFT JOIN ram_type ON laptops.ram_type_id = ram_type.id
+            LEFT JOIN disk_type ON laptops.disk_type_id = disk_type.id
+            LEFT JOIN os ON laptops.os_id = os.id
+            LEFT JOIN weight ON laptops.weight_id = weight.id
         """)
     else:
         cur.execute(f"""
-        select laptops.id, brands.name, laptops.model, laptops.processor_generation, processor.model, ram_type.type, laptops.ram, disk_type.ssd, disk_type.hdd, os.name, laptops.os_bit, laptops.graphic_card_gb, weight.type, laptops.display_size, laptops.touchscreen, laptops.price, laptops.rating
-        from laptops 
-        left join brands on laptops.brand_id = brands.id
-        left join processor on laptops.processor_id = processor.id
-        left join ram_type on laptops.ram_type_id = ram_type.id
-        left join disk_type on laptops.disk_type_id = disk_type.id
-        left join os on laptops.os_id = os.id
-        left join weight on laptops.weight_id = weight.id
-        where {condition}
+        SELECT laptops.id, brands.name, laptops.model, laptops.processor_generation, processor.model, ram_type.type, laptops.ram, disk_type.ssd, disk_type.hdd, os.name, laptops.os_bit, laptops.graphic_card_gb, weight.type, laptops.display_size, laptops.touchscreen, laptops.price, laptops.rating
+        FROM laptops 
+        LEFT JOIN brands ON laptops.brand_id = brands.id
+        LEFT JOIN processor ON laptops.processor_id = processor.id
+        LEFT JOIN ram_type ON laptops.ram_type_id = ram_type.id
+        LEFT JOIN disk_type ON laptops.disk_type_id = disk_type.id
+        LEFT JOIN os ON laptops.os_id = os.id
+        LEFT JOIN weight ON laptops.weight_id = weight.id
+        WHERE {condition}
         """)
     
+    result = cur.fetchall()
+    
+    if not error:
+        # if there are no issue with the prompt, display amoung of results
+        tk.Label(second_frame, text = f"showing {len(result)} results").pack(fill = "x")
+    else:
+        # display error message
+        tk.Label(second_frame, text = error, fg="red", font=("15")).pack(fill = "x")
+
+
     # pack each laptop as a button that expands when the user clicks on it
-    for index, laptop in enumerate(cur.fetchall()):
-        item = tk.Button(second_frame, text=f"{laptop[1]} {laptop[2]}", command=lambda id=laptop[0], widget_id = index+1: detail(id, widget_id))
+    for index, laptop in enumerate(result):
+        # item = tk.Button(second_frame, text=f"{laptop[1]} {laptop[2]}", command=lambda id=laptop[0], widget_id = index+1: detail(id, widget_id))
+        item = tk.Button(second_frame, text=f"{laptop[1]} {laptop[2]}", command=lambda id=laptop[0]: detail(id))
         item.pack(fill="x")
 
 # display everything before runnint tkinter mainloop
