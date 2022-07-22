@@ -1,18 +1,12 @@
 import tkinter as tk
-from slap import insert_data, all_keys, get_average
+from backend import insert_data, all_keys, get_average
 import sqlite3
 
 # have the connection and cursor made before anything else
 conn = sqlite3.connect("laptops.db")
 cur = conn.cursor()
 
-# making the main gui window
-root = tk.Tk()
-root.title("Roberto")
-title = tk.Label(root, text="Laptops", font=("Sans", 15))
-title.pack()
 
-# this function will make sure that only one child window is on at any point
 
 def noinjection(statement, statement_type):
     """
@@ -442,47 +436,8 @@ def add_window():
         info["entry"] = entry
 
 
-# a filter and add button
-filter_button = tk.Button(root, text="filters", command=filter_window, font = ("Sans, 10"))
-filter_button.pack(side = "top", anchor="ne")
-
-add_button = tk.Button(root, text = "add", command=add_window, font = ("Sans, 10"))
-add_button.pack(side = "top", anchor="ne")
-
-# create main frame
-main_frame = tk.Frame(root, height = 100, width = 100)
-main_frame.pack(fill = "both", expand=1) 
-
-# create canvas
-my_canvas = tk.Canvas(main_frame)
-my_canvas.pack(side = "left", fill="both", expand=1)
-
-# add scrollbar to canvas
-my_scrollbar = tk.Scrollbar(main_frame, orient="vertical", command=my_canvas.yview)
-my_scrollbar.pack(side="right", fill="y")
-
-# configure canvas
-my_canvas.configure(yscrollcommand=my_scrollbar.set)
-my_canvas.bind('<Configure>', lambda e: my_canvas.configure(scrollregion=my_canvas.bbox("all")))
-
-# supporting mouse scrolling
-def _on_mousewheel(event):
-    my_canvas.yview_scroll(-1 * int((event.delta / 120)), "units")
-
-my_canvas.bind_all("<MouseWheel>", _on_mousewheel)
-
-# below is for linux, it also doesn't work for some reason.
-# my_canvas.bind_all("<Button-4>", _on_mousewheel)
-# my_canvas.bind_all("<Button-5>", _on_mousewheel) 
-
-# create another frame inside canvas
-second_frame = tk.Frame(my_canvas)
-
-# add new frame to window in canvas
-my_canvas.create_window((0,0), window=second_frame, anchor="nw")
 
 # add items into second frame
-
 def detail(id):
     """
     this function displays more data on the laptop clicked by user on the main gui
@@ -569,6 +524,53 @@ def display_data(condition = False, error = None):
         # item = tk.Button(second_frame, text=f"{laptop[1]} {laptop[2]}", command=lambda id=laptop[0], widget_id = index+1: detail(id, widget_id))
         item = tk.Button(second_frame, text=f"{laptop[1]} {laptop[2]}", command=lambda id=laptop[0]: detail(id))
         item.pack(fill="x")
+
+
+# making the main gui window
+root = tk.Tk()
+root.title("Roberto")
+title = tk.Label(root, text="Laptops", font=("Sans", 15))
+title.pack()
+
+
+# a filter and add button
+filter_button = tk.Button(root, text="filters", command=filter_window, font = ("Sans, 10"))
+filter_button.pack(side = "top", anchor="ne")
+
+add_button = tk.Button(root, text = "add", command=add_window, font = ("Sans, 10"))
+add_button.pack(side = "top", anchor="ne")
+
+# create main frame
+main_frame = tk.Frame(root, height = 100, width = 100)
+main_frame.pack(fill = "both", expand=1) 
+
+# create canvas
+my_canvas = tk.Canvas(main_frame)
+my_canvas.pack(side = "left", fill="both", expand=1)
+
+# add scrollbar to canvas
+my_scrollbar = tk.Scrollbar(main_frame, orient="vertical", command=my_canvas.yview)
+my_scrollbar.pack(side="right", fill="y")
+
+# configure canvas
+my_canvas.configure(yscrollcommand=my_scrollbar.set)
+my_canvas.bind('<Configure>', lambda e: my_canvas.configure(scrollregion=my_canvas.bbox("all")))
+
+# supporting mouse scrolling
+def _on_mousewheel(event):
+    my_canvas.yview_scroll(-1 * int((event.delta / 120)), "units")
+
+my_canvas.bind_all("<MouseWheel>", _on_mousewheel)
+
+# below is for linux, it also doesn't work for some reason.
+# my_canvas.bind_all("<Button-4>", _on_mousewheel)
+# my_canvas.bind_all("<Button-5>", _on_mousewheel) 
+
+# create another frame inside canvas
+second_frame = tk.Frame(my_canvas)
+
+# add new frame to window in canvas
+my_canvas.create_window((0,0), window=second_frame, anchor="nw")
 
 # display everything before runnint tkinter mainloop
 display_data()

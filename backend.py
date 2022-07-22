@@ -132,7 +132,10 @@ def all_keys(cur, table, items) -> dict():
 def get_average(cur, field, table, average):
     # average will be mean, median, or mode
     # start by getting all data from field
-    result = cur.execute(f"SELECT {field} FROM {table} WHERE 1=1")
+    if table == "laptops":
+        result = cur.execute(f"SELECT {field} FROM laptops WHERE 1=1")
+    else:
+        result = cur.execute(f"SELECT {table}.{field} FROM laptops LEFT JOIN {table} ON {table}.id = laptops.{table}_id WHERE 1=1")
     numbers = result.fetchall()
    
     if average == "mean":
@@ -152,4 +155,5 @@ def get_average(cur, field, table, average):
         # https://stackoverflow.com/questions/10797819/finding-the-mode-of-a-list thanks stackoverflow
         return f"commonly {max(set(numbers), key=numbers.count)} (mode)"
 
-remake_data()
+# calling this will remake the database
+# remake_data()
