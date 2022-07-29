@@ -164,7 +164,7 @@ def filter_window():
         print(condition)
 
         # this will display the filtered data on the main gui
-        display_data(condition)
+        display_data(condition, sort_by=sort_by.get(), direction=direction.get())
 
         # destroys the window before setting window_on back to False, allowing another window to be open
         t.destroy()
@@ -290,6 +290,18 @@ def filter_window():
 
             # remember check box entry
             info["choice"] = boo
+    
+
+    # sort by
+    tk.Label(t, text="sort by: ").grid(row = 17, column = 0)
+    sort_by = tk.StringVar(t)
+    sort_by.set("model")
+    sort_by_options = tk.OptionMenu(t, sort_by, *["model", "ram", "graphic_card_gb", "price", "rating"])
+    sort_by_options.grid(row = 17, column = 1)
+    direction = tk.StringVar(t)
+    direction.set("ascending")
+    direction_options = tk.OptionMenu(t, direction, *["ascending", "descending"])
+    direction_options.grid(row = 17, column = 2)
 
 
 def add_window():
@@ -435,8 +447,6 @@ def add_window():
         # saves user option
         info["entry"] = entry
 
-
-
 # add items into second frame
 def detail(id):
     """
@@ -475,7 +485,7 @@ def detail(id):
     id: {id}
     """, font=("15"), justify="left").pack(anchor="nw")
 
-def display_data(condition = False, error = None):
+def display_data(condition = False, error = None, sort_by = "model", direction = "ascending"):
     """
     this function displays all the laptop on the main gui for the user, it also prints out the "error" message
     """
@@ -495,6 +505,7 @@ def display_data(condition = False, error = None):
             LEFT JOIN disk_type ON laptops.disk_type_id = disk_type.id
             LEFT JOIN os ON laptops.os_id = os.id
             LEFT JOIN weight ON laptops.weight_id = weight.id
+            ORDER BY laptops.{sort_by} {"ASC" if direction == "ascending" else "DESC"}
         """)
     else:
         cur.execute(f"""
@@ -507,6 +518,7 @@ def display_data(condition = False, error = None):
         LEFT JOIN os ON laptops.os_id = os.id
         LEFT JOIN weight ON laptops.weight_id = weight.id
         WHERE {condition}
+        ORDER BY laptops.{sort_by} {"ASC" if direction == "ascending" else "DESC"}
         """)
     
     result = cur.fetchall()
@@ -532,13 +544,31 @@ root.title("Roberto")
 title = tk.Label(root, text="Laptops", font=("Sans", 15))
 title.pack()
 
+# canvas to contain everything
+button_ui = tk.Canvas(root)
+button_ui.pack()
 
 # a filter and add button
-filter_button = tk.Button(root, text="filters", command=filter_window, font = ("Sans, 10"))
-filter_button.pack(side = "top", anchor="ne")
+filter_button = tk.Button(button_ui, text="filters", command=filter_window, font = ("Sans, 10"))
+filter_button.grid(row = 0, column = 1)
 
-add_button = tk.Button(root, text = "add", command=add_window, font = ("Sans, 10"))
-add_button.pack(side = "top", anchor="ne")
+add_button = tk.Button(button_ui, text = "add", command=add_window, font = ("Sans, 10"))
+add_button.grid(row = 0, column = 2)
+
+# sort by
+tk.Label(button_ui, text="sort by: ").grid(row = 1, column = 0)
+sort_by = tk.StringVar(button_ui)
+sort_by.set("model")
+sort_by_options = tk.OptionMenu(button_ui, sort_by, *["model", "ram", "graphic_card_gb", "price", "rating"])
+sort_by_options.grid(row = 1, column = 1)
+direction = tk.StringVar(button_ui)
+direction.set("ascending")
+direction_options = tk.OptionMenu(button_ui, direction, *["ascending", "descending"])
+direction_options.grid(row = 1, column = 2)
+
+# refresh main gui
+refresh_button = tk.Button(button_ui, text="refresh", command=lambda: display_data(sort_by=sort_by.get(), direction=direction.get()))
+refresh_button.grid(row = 1, column = 4)
 
 # create main frame
 main_frame = tk.Frame(root, height = 100, width = 100)
@@ -562,7 +592,7 @@ def _on_mousewheel(event):
 
 my_canvas.bind_all("<MouseWheel>", _on_mousewheel)
 
-# below is for linux, it also doesn't work for some reason.
+# below is for linux
 # my_canvas.bind_all("<Button-4>", _on_mousewheel)
 # my_canvas.bind_all("<Button-5>", _on_mousewheel) 
 
