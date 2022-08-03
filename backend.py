@@ -141,7 +141,7 @@ def get_average(cur, field, table, average):
     if average == "mean":
         # remove all non numbers before calculating the mean
         numbers = [num[0] for num in numbers if isinstance(num[0], int) or isinstance(num[0], float)]
-        return f"average of {sum(numbers)/len(numbers)} (mean)"
+        return f"average of {round(sum(numbers)/len(numbers), 2)} (mean)"
 
     if average == "median":
         # remove all non numbers before calculating the median

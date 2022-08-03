@@ -30,6 +30,30 @@ def noinjection(statement, statement_type):
     
     return True
 
+def check_stupid(column, lowerbound, upperbound):
+    """
+    this function checks if the input by the user is stupid 
+    """
+
+    # convert both to integer
+    lowerbound = int(lowerbound)
+    upperbound = int(upperbound)
+
+    # if check the value accordingly to the column
+    if column == "price" or column == "ssd" or column == "hdd":
+
+        if lowerbound < 0:
+            return "stupid input detected"
+
+    elif column == "rating":
+        if lowerbound < 0 or upperbound > 5:
+            return "rating is between 0 to 5"
+    else:
+        if upperbound > 100 or lowerbound < 0 or lowerbound > upperbound:
+            return "stupid input detected"
+    
+    return True
+
 def filter_window():
     """
     this function spawns a window with filtering gui
@@ -132,11 +156,19 @@ def filter_window():
 
                 # if only one field is empty, fill it out for them
                 if entry == "": entry = "0"
-                if entry2 == "": entry2 = "10000000"
+                if entry2 == "": entry2 = "10000000" if column == "price" else "5" if column == "rating" else "100"
 
                 if not noinjection(entry, "float") or not noinjection(entry2, "float"): 
                     # if the entered string does not pass the anti sql injection test, it displays everything and destroys the window
                     display_data(False, "number field only takes in numbers")
+                    t.destroy()
+                    t.update()
+                    return
+
+                # checking for dumb inputs
+                check = check_stupid(column, entry, entry2)
+                if check is not True:
+                    display_data(False, check)
                     t.destroy()
                     t.update()
                     return
@@ -354,6 +386,14 @@ def add_window():
                 info["entry"] = entry[0].upper() + entry[1:].lower()
                 
             if info["type"] == "int":
+                # check if input is stupid
+                check = check_stupid(key, info["entry"].get(), info["entry"].get())
+                if check is not True:
+                    display_data(False, check)
+                    t.destroy()
+                    t.update()
+                    return
+                    
                 info["entry"] = int(info["entry"].get())
 
             if info["type"] == "float":
@@ -440,6 +480,9 @@ def add_window():
         if info["type"] == "int" or info["type"] == "float":
             # if its a integer or float we are expecting, we will add the unit behind the entry box
             tk.Label(t, text = info["unit"]).grid(row=i+1, column=3)
+
+        if "optional" not in info: 
+            tk.Label(t, text = "*required").grid(row=i+1, column=4)
 
         # an entry box for int and string fields
         entry = tk.Entry(t)
