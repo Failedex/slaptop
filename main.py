@@ -61,7 +61,7 @@ def filter_window():
 
     # just some window configuration
     t = tk.Toplevel(root)
-    t.wm_title("laptop filters")
+    t.wm_title("Filters")
 
     # a subfunction that is activated when pressing "comfirm filter"
     # note that this function will confuse you if you haven't read the rest of the function. It is very important to read the rest of the function first.
@@ -341,7 +341,7 @@ def add_window():
     this function spawns a window with the add gui
     """
     t = tk.Toplevel(root)
-    t.wm_title("laptop add")
+    t.wm_title("Add")
 
     # function that runs when the "add laptop" button is pressed. similar to the filter gui function, read the rest of the code in this function before reading this one or you will be confused
     def add_laptop():
@@ -516,15 +516,15 @@ def detail(id):
 
     # set text
     tk.Label(t, text = f"""{laptop[0]} {laptop[1]} 
-    ssd: {laptop[6]} hdd: {laptop[7]}
+    ssd: {laptop[6]}GB hdd: {laptop[7]}GB
     ram: {laptop[5]}GB {laptop[4]} 
-    cpu: {laptop[3]} {laptop[2]}th gen
+    cpu: {laptop[3]} {str(laptop[2]) + "th gen" if laptop[2] else ""}
     os: {laptop[8]} bit: {laptop[9]}
     graphics card: {laptop[10]}GB
     weight: {laptop[11]}
-    display size: {laptop[12]}
+    display size: {laptop[12] if laptop[12] else "undefined"}
     touchsceen: {"true" if laptop[13] == 1 else "false"}
-    price: {laptop[14]} rating: {laptop[15]}
+    price: {laptop[14] if laptop[14] else "undefined"} rating: {laptop[15] if laptop[15] else "undefined"}
     id: {id}
     """, font=("15"), justify="left").pack(anchor="nw")
 
@@ -583,7 +583,7 @@ def display_data(condition = False, error = None, sort_by = "model", direction =
 
 # making the main gui window
 root = tk.Tk()
-root.title("Roberto")
+root.title("Laptops")
 title = tk.Label(root, text="Laptops", font=("Sans", 15))
 title.pack()
 
