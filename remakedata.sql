@@ -8,45 +8,45 @@ drop table if exists weight;
 drop table if exists processor_brand;
 
 create table brands (
-    id integer primary key,
+    id integer primary key unique,
     name varchar(20)
 );
 
 create table processor_brand(
-    id integer primary key,
+    id integer primary key unique,
     brand varchar(20)
 );
 
 create table processor (
-    id integer primary key,
+    id integer primary key unique,
     brand_id integer,
     model varchar(20),
     foreign key(brand_id) references processor_brand(id)
 );
 
 create table ram_type (
-    id integer primary key,
+    id integer primary key unique,
     type varchar(20)
 );
 
 create table disk_type (
-    id integer primary key,
+    id integer primary key unique,
     ssd int,
     hdd int
 );
 
 create table os (
-    id integer primary key,
+    id integer primary key unique,
     name varchar(20)
 );
 
 create table weight (
-    id integer primary key,
+    id integer primary key unique,
     type varchar(20)
 );
 
 create table laptops (
-    id integer primary key,
+    id integer primary key unique,
     brand_id integer,
     model varchar(20),
     processor_id integer,

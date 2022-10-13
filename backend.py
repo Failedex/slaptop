@@ -40,13 +40,13 @@ def remake_data():
             touchscreen = 1 if laptop[15] == "Yes" else 0
 
             # I used another funtion responsible for inserting data so I could reuse the function later
-            insert_data(cur, index, laptop[0], laptop[1], laptop[2], laptop[3], processor_gnrt, ram, laptop[6], ssd, hdd, laptop[9], os_bit, int(laptop[11]), laptop[12], display, touchscreen, int(laptop[17]), float(laptop[20]))
+            insert_data(cur, laptop[0], laptop[1], laptop[2], laptop[3], processor_gnrt, ram, laptop[6], ssd, hdd, laptop[9], os_bit, int(laptop[11]), laptop[12], display, touchscreen, int(laptop[17]), float(laptop[20]))
 
     
     conn.commit()
     conn.close()
 
-def insert_data(cur, id, brand, model, processor_brand, processor_name, processor_generation, ram, ram_type, ssd, hdd, os, os_bit, graphic_card_gb, weight, display_size, touchscreen, price, rating):
+def insert_data(cur, brand, model, processor_brand, processor_name, processor_generation, ram, ram_type, ssd, hdd, os, os_bit, graphic_card_gb, weight, display_size, touchscreen, price, rating):
     """
     this function takes in everything it needs to know about a laptop and inserts it into the database.
     """      
@@ -61,9 +61,9 @@ def insert_data(cur, id, brand, model, processor_brand, processor_name, processo
     weight_id = get_key(True, "weight", f"type = '{weight}'", f"'{weight}'", "type", cur)
 
     cur.execute("""
-        INSERT INTO laptops (id, brand_id, model, processor_id, processor_generation, ram, ram_type_id, disk_type_id, os_id, os_bit, graphic_card_gb, weight_id, display_size, touchscreen, price, rating) 
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    """, [id, brand_id, model, processor_id, processor_generation, ram, ram_type_id, disk_type_id, os_id, os_bit, graphic_card_gb, weight_id, display_size, touchscreen, price, rating])
+        INSERT INTO laptops (brand_id, model, processor_id, processor_generation, ram, ram_type_id, disk_type_id, os_id, os_bit, graphic_card_gb, weight_id, display_size, touchscreen, price, rating) 
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    """, [brand_id, model, processor_id, processor_generation, ram, ram_type_id, disk_type_id, os_id, os_bit, graphic_card_gb, weight_id, display_size, touchscreen, price, rating])
 
 def get_key(create, table, condition, item, values, cur):
     """
@@ -80,6 +80,7 @@ def get_key(create, table, condition, item, values, cur):
         # if it got here, it hasn't returned which means create is True and the key should be created
         cur.execute(f"INSERT INTO {table} ({values}) VALUES ({item})")
 
+        # the id should be set automatically as it is auto incremented
         cur.execute (f"SELECT id FROM {table} WHERE {condition}")
 
         return cur.fetchone()[0]
@@ -155,5 +156,6 @@ def get_average(cur, field, table, average):
         # https://stackoverflow.com/questions/10797819/finding-the-mode-of-a-list thanks stackoverflow
         return f"commonly {max(set(numbers), key=numbers.count)} (mode)"
 
-# calling this will remake the database
-# remake_data()
+if __name__ == "__main__":
+    # calling this will remake the database
+    remake_data()

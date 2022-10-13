@@ -2,11 +2,6 @@ import tkinter as tk
 from backend import insert_data, all_keys, get_average
 import sqlite3
 
-# have the connection and cursor made before anything else
-conn = sqlite3.connect("laptops.db")
-cur = conn.cursor()
-
-
 
 def noinjection(statement, statement_type):
     """
@@ -524,7 +519,8 @@ def detail(id):
     weight: {laptop[11]}
     display size: {laptop[12] if laptop[12] else "undefined"}
     touchsceen: {"true" if laptop[13] == 1 else "false"}
-    price: {laptop[14] if laptop[14] else "undefined"} rating: {laptop[15] if laptop[15] else "undefined"}
+    price: {laptop[14] if laptop[14] else "undefined"} 
+    rating: {laptop[15] if laptop[15] else "undefined"}
     id: {id}
     """, font=("15"), justify="left").pack(anchor="nw")
 
@@ -568,7 +564,7 @@ def display_data(condition = False, error = None, sort_by = "model", direction =
     
     if not error:
         # if there are no issue with the prompt, display amoung of results
-        tk.Label(second_frame, text = f"showing {len(result)} results").pack(fill = "x")
+        tk.Label(second_frame, text = f"showing {len(result)} results (click on a model for more info)").pack(fill = "x")
     else:
         # display error message
         tk.Label(second_frame, text = error, fg="red", font=("15")).pack(fill = "x")
@@ -581,70 +577,77 @@ def display_data(condition = False, error = None, sort_by = "model", direction =
         item.pack(fill="x")
 
 
-# making the main gui window
-root = tk.Tk()
-root.title("Laptops")
-title = tk.Label(root, text="Laptops", font=("Sans", 15))
-title.pack()
+if __name__ == "__main__":
+    # the classic dunder statement with the twist. It is important that these variables below are global for the sake of clean code, therefore I did not restrict them to the scope of a main function
 
-# canvas to contain everything
-button_ui = tk.Canvas(root)
-button_ui.pack()
+    # have the connection and cursor made before anything else. I also want this to be global
+    conn = sqlite3.connect("laptops.db")
+    cur = conn.cursor()
 
-# a filter and add button
-filter_button = tk.Button(button_ui, text="filters", command=filter_window, font = ("Sans, 10"))
-filter_button.grid(row = 0, column = 1)
+    # making the main gui window
+    root = tk.Tk()
+    root.title("Laptops")
+    title = tk.Label(root, text="Laptops", font=("Sans", 15))
+    title.pack()
 
-add_button = tk.Button(button_ui, text = "add", command=add_window, font = ("Sans, 10"))
-add_button.grid(row = 0, column = 2)
+    # canvas to contain everything
+    button_ui = tk.Canvas(root)
+    button_ui.pack()
 
-# sort by
-tk.Label(button_ui, text="sort by: ").grid(row = 1, column = 0)
-sort_by = tk.StringVar(button_ui)
-sort_by.set("model")
-sort_by_options = tk.OptionMenu(button_ui, sort_by, *["model", "ram", "graphic_card_gb", "price", "rating"])
-sort_by_options.grid(row = 1, column = 1)
-direction = tk.StringVar(button_ui)
-direction.set("ascending")
-direction_options = tk.OptionMenu(button_ui, direction, *["ascending", "descending"])
-direction_options.grid(row = 1, column = 2)
+    # a filter and add button
+    filter_button = tk.Button(button_ui, text="filters", command=filter_window, font = ("Sans, 10"))
+    filter_button.grid(row = 0, column = 1)
 
-# refresh main gui
-refresh_button = tk.Button(button_ui, text="refresh", command=lambda: display_data(sort_by=sort_by.get(), direction=direction.get()))
-refresh_button.grid(row = 1, column = 4)
+    add_button = tk.Button(button_ui, text = "add", command=add_window, font = ("Sans, 10"))
+    add_button.grid(row = 0, column = 2)
 
-# create main frame
-main_frame = tk.Frame(root, height = 100, width = 100)
-main_frame.pack(fill = "both", expand=1) 
+    # sort by
+    tk.Label(button_ui, text="sort by: ").grid(row = 1, column = 0)
+    sort_by = tk.StringVar(button_ui)
+    sort_by.set("model")
+    sort_by_options = tk.OptionMenu(button_ui, sort_by, *["model", "ram", "graphic_card_gb", "price", "rating"])
+    sort_by_options.grid(row = 1, column = 1)
+    direction = tk.StringVar(button_ui)
+    direction.set("ascending")
+    direction_options = tk.OptionMenu(button_ui, direction, *["ascending", "descending"])
+    direction_options.grid(row = 1, column = 2)
 
-# create canvas
-my_canvas = tk.Canvas(main_frame)
-my_canvas.pack(side = "left", fill="both", expand=1)
+    # refresh main gui
+    refresh_button = tk.Button(button_ui, text="refresh", command=lambda: display_data(sort_by=sort_by.get(), direction=direction.get()))
+    refresh_button.grid(row = 1, column = 4)
 
-# add scrollbar to canvas
-my_scrollbar = tk.Scrollbar(main_frame, orient="vertical", command=my_canvas.yview)
-my_scrollbar.pack(side="right", fill="y")
+    # create main frame
+    main_frame = tk.Frame(root, height = 100, width = 100)
+    main_frame.pack(fill = "both", expand=1) 
 
-# configure canvas
-my_canvas.configure(yscrollcommand=my_scrollbar.set)
-my_canvas.bind('<Configure>', lambda e: my_canvas.configure(scrollregion=my_canvas.bbox("all")))
+    # create canvas
+    my_canvas = tk.Canvas(main_frame)
+    my_canvas.pack(side = "left", fill="both", expand=1)
 
-# supporting mouse scrolling
-def _on_mousewheel(event):
-    my_canvas.yview_scroll(-1 * int((event.delta / 120)), "units")
+    # add scrollbar to canvas
+    my_scrollbar = tk.Scrollbar(main_frame, orient="vertical", command=my_canvas.yview)
+    my_scrollbar.pack(side="right", fill="y")
 
-my_canvas.bind_all("<MouseWheel>", _on_mousewheel)
+    # configure canvas
+    my_canvas.configure(yscrollcommand=my_scrollbar.set)
+    my_canvas.bind('<Configure>', lambda e: my_canvas.configure(scrollregion=my_canvas.bbox("all")))
 
-# below is for linux
-# my_canvas.bind_all("<Button-4>", _on_mousewheel)
-# my_canvas.bind_all("<Button-5>", _on_mousewheel) 
+    # supporting mouse scrolling
+    def _on_mousewheel(event):
+        my_canvas.yview_scroll(-1 * int((event.delta / 120)), "units")
 
-# create another frame inside canvas
-second_frame = tk.Frame(my_canvas)
+    my_canvas.bind_all("<MouseWheel>", _on_mousewheel)
 
-# add new frame to window in canvas
-my_canvas.create_window((0,0), window=second_frame, anchor="nw")
+    # below is for linux
+    # my_canvas.bind_all("<Button-4>", _on_mousewheel)
+    # my_canvas.bind_all("<Button-5>", _on_mousewheel) 
 
-# display everything before runnint tkinter mainloop
-display_data()
-root.mainloop()
+    # create another frame inside canvas
+    second_frame = tk.Frame(my_canvas)
+
+    # add new frame to window in canvas
+    my_canvas.create_window((0,0), window=second_frame, anchor="nw")
+
+    # display everything before runnint tkinter mainloop
+    display_data()
+    root.mainloop()
